@@ -379,6 +379,4 @@ elementOption
 identifier
    : RULE_REF
    | TOKEN_REF
-   | ID
    ;
-   

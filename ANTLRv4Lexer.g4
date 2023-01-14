@@ -41,7 +41,7 @@
 
 lexer grammar ANTLRv4Lexer;
 
-//options { superClass = LexerAdaptor; }
+options { superClass = LexerAdaptor; }
 import LexBasic;
 
 // Standard set of fragments
@@ -92,7 +92,7 @@ UNTERMINATED_STRING_LITERAL
 // are contained within square brackets.
 BEGIN_ARGUMENT
    : LBrack
-
+   { self.handleBeginArgument() }
    ;
 
 // -------------------------
@@ -266,17 +266,12 @@ NOT
    // -------------------------
    // Identifiers - allows unicode rule/token names
 
-TOKEN_REF: [A-Z] NameChar*;
-RULE_REF: [a-z] NameChar*;
-
 ID
    : Id
    ;
-
-LEXER_CHAR_SET: '['.*?']';
-
    // -------------------------
-    // Whitespace
+   // Whitespace
+
 WS
    : Ws+ -> channel (OFF_CHANNEL)
    ;
@@ -321,6 +316,7 @@ ARGUMENT_CHAR_LITERAL
 
 END_ARGUMENT
    : RBrack
+   { self.handleEndArgument() }
    ;
 
 // added this to return non-EOF token type here. EOF does something weird
@@ -331,11 +327,6 @@ UNTERMINATED_ARGUMENT
 ARGUMENT_CONTENT
    : .
    ;
-
-// TODO: This grammar and the one used in the Intellij Antlr4 plugin differ
-// for "actions". This needs to be resolved at some point.
-// The Intellij Antlr4 grammar is here:
-// https://github.com/antlr/intellij-plugin-v4/blob/1f36fde17f7fa63cb18d7eeb9cb213815ac658fb/src/main/antlr/org/antlr/intellij/plugin/parser/ANTLRv4Lexer.g4#L587
 
 // -------------------------
 // Target Language Actions
@@ -377,6 +368,7 @@ ACTION_LINE_COMMENT
 
 END_ACTION
    : RBrace
+   { self.handleEndAction() }
    ;
 
 UNTERMINATED_ACTION
@@ -391,6 +383,10 @@ ACTION_CONTENT
 mode LexerCharSet;
 LEXER_CHAR_SET_BODY
    : (~ [\]\\] | EscAny)+ -> more
+   ;
+
+LEXER_CHAR_SET
+   : RBrack -> popMode
    ;
 
 UNTERMINATED_CHAR_SET

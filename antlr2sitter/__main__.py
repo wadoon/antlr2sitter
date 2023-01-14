@@ -37,6 +37,9 @@ class MyVisitor(ANTLRv4ParserVisitor):
     def visit_list(self, seq):
         return (x.accept(self) for x in seq)
 
+    def visitBlock(self, ctx: ANTLRv4Parser.BlockContext):
+        return ctx.altList().accept(self)
+
     def visitAlternative(self, ctx: ANTLRv4Parser.AlternativeContext):
         seq = list(filter(lambda x: x is not None, self.visit_list(ctx.element())))
         if len(seq) == 0:
@@ -45,6 +48,14 @@ class MyVisitor(ANTLRv4ParserVisitor):
             return seq[0]
         elements = ', '.join(seq)
         return f"seq({elements})"
+
+    def visitAltList(self, ctx:ANTLRv4Parser.AltListContext):
+        if len(ctx.alternative())==1:
+            return ctx.alternative(0).accept(self)
+        seq = self.visit_list(ctx.alternative())
+        j = ', '.join(seq)
+        return f"choice({j})"
+
 
     def visitElement(self, ctx: ANTLRv4Parser.ElementContext):
         if ctx.actionBlock():
@@ -55,7 +66,7 @@ class MyVisitor(ANTLRv4ParserVisitor):
                  ctx.ebnf()).accept(self)
 
         sfx: ANTLRv4Parser.EbnfSuffixContext
-        if sfx := ctx.ebnfSuffix() is not None:
+        if sfx := ctx.ebnfSuffix():
             return self.ebnf_suffix(child, sfx)
         return child
 
@@ -89,7 +100,7 @@ class MyVisitor(ANTLRv4ParserVisitor):
         return super().visitNotSet(ctx)
 
     def visitEbnf(self, ctx: ANTLRv4Parser.EbnfContext):
-        c = ctx.block().accept()
+        c = ctx.block().accept(self)
         if ctx.blockSuffix():
             return self.ebnf_suffix(c, ctx.blockSuffix().ebnfSuffix())
         return c
@@ -120,7 +131,13 @@ class MyVisitor(ANTLRv4ParserVisitor):
         return f"{elements}"
 
     def visitLexerElement(self, ctx: ANTLRv4Parser.LexerElementContext):
-        return super().visitLexerElement(ctx)
+        if ctx.actionBlock(): return "/*action-block*/";
+
+        child = (ctx.lexerAtom() or ctx.lexerBlock()).accept(self)
+        if sfx := ctx.ebnfSuffix():
+            return child
+
+        return child
 
     def visitLabeledLexerElement(self, ctx: ANTLRv4Parser.LabeledLexerElementContext):
         return super().visitLabeledLexerElement(ctx)
@@ -129,7 +146,7 @@ class MyVisitor(ANTLRv4ParserVisitor):
         return super().visitLexerBlock(ctx)
 
     def visitLexerAtom(self, ctx: ANTLRv4Parser.LexerAtomContext):
-        if ctx.LEXER_CHAR_SET():
+        if ctx.LEXER_CHAR_SET() or ctx.DOT():
             return ""
         return (ctx.characterRange() or ctx.terminal_() or ctx.notSet()).accept(self)
 
