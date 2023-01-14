@@ -1,0 +1,9 @@
+[project]
+name = "antlr2sitter"
+version = "0.0.1"
+dependencies = [
+    'antlr4-python3-runtime',
+]
+
+[project.scripts]
+antlr2sitter = "antlr2sitter.__main__:main"
